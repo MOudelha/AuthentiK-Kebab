@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin • L'Authentik</title>
+<link rel="icon" type="image/png" href="assets/img/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0d10;--s:#14161b;--line:rgba(255,255,255,.10);--text:#f7efe1;--muted:#c9bea9;--gold:#eec37b;--acc:#b23a16;--acc2:#8c260d;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0c0d10;color:#f7efe1;font-family:Inter,system-ui,sans-serif;min-height:100vh}
+a{color:inherit;text-decoration:none}
+input,select,textarea{font-family:inherit}
+
+/* LOGIN */
+.login-wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0c0d10;z-index:999}
+.login-box{background:#14161b;border:1px solid var(--line);border-radius:26px;padding:2.5rem;width:360px;text-align:center}
+.login-box h2{font-size:1.8rem;margin-bottom:1.5rem;letter-spacing:-.04em}
+.login-box input{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:12px;padding:.85rem 1rem;color:#f7efe1;font-size:1rem;margin-bottom:.8rem}
+.login-box input:focus{outline:2px solid var(--gold);border-color:transparent}
+.login-err{color:#fca5a5;font-size:.85rem;min-height:1.1rem;margin-top:.2rem}
+.btn-main{width:100%;padding:.9rem;border-radius:14px;border:none;background:linear-gradient(180deg,var(--acc),var(--acc2));color:#fff;font-weight:900;font-size:1rem;cursor:pointer;font-family:inherit;transition:opacity .15s}
+.btn-main:hover{opacity:.9}
+
+/* LAYOUT */
+.admin-wrap{display:none;max-width:1300px;margin:0 auto;padding:1.5rem 1rem}
+.top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;gap:1rem;flex-wrap:wrap}
+.top-bar h1{font-size:1.8rem;letter-spacing:-.04em}
+.back-link{color:var(--muted);font-size:.85rem;font-weight:600;display:flex;align-items:center;gap:.3rem}
+.tabs{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1.5rem}
+.tab{padding:.6rem 1.1rem;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:#f7efe1;cursor:pointer;font-weight:700;font-family:inherit;font-size:.88rem;transition:all .15s}
+.tab.on,.tab:hover{background:linear-gradient(180deg,var(--acc),var(--acc2));border-color:transparent}
+.pane{display:none}.pane.on{display:block}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.8rem;margin-bottom:1.5rem}
+.stat{background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.03));border:1px solid var(--line);border-radius:18px;padding:1.1rem;text-align:center}
+.stat-v{font-size:1.9rem;font-weight:900;color:var(--gold)}
+.stat-l{font-size:.8rem;color:var(--muted);margin-top:.2rem}
+
+/* COMMANDES */
+.filters{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem;align-items:center}
+.filters input,.filters select{background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:10px;padding:.5rem .8rem;color:#f7efe1;font-size:.9rem}
+.btn-sm{padding:.5rem .9rem;border-radius:10px;border:1px solid rgba(238,195,123,.3);background:rgba(238,195,123,.1);color:var(--gold);cursor:pointer;font-weight:700;font-family:inherit;font-size:.85rem}
+.btn-danger{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.1);color:#fca5a5}
+
+.cmd-card{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:16px;padding:1rem 1.2rem;margin-bottom:.7rem;cursor:pointer;transition:border .15s}
+.cmd-card:hover,.cmd-card.open{border-color:rgba(238,195,123,.35)}
+.cmd-head{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.cmd-num{font-weight:900;color:var(--gold);font-size:1.05rem;min-width:60px}
+.cmd-client{font-weight:700;flex:1}
+.cmd-time{color:var(--muted);font-size:.85rem}
+.cmd-total{font-weight:900;font-size:1.05rem}
+.badge{display:inline-flex;align-items:center;padding:.25rem .65rem;border-radius:999px;font-size:.78rem;font-weight:800;cursor:pointer;border:none;font-family:inherit}
+.badge-wait{background:rgba(234,179,8,.2);color:#fde047}
+.badge-10min{background:rgba(249,115,22,.2);color:#fb923c}
+.badge-5min{background:rgba(239,68,68,.2);color:#fca5a5}
+.badge-ready{background:rgba(34,197,94,.2);color:#4ade80}
+.status-btn{font-size:.75rem;padding:.2rem .5rem;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--muted);cursor:pointer;font-family:inherit;margin:.1rem}
+.status-btn:hover{background:rgba(255,255,255,.1)}
+
+.cmd-body{display:none;margin-top:.9rem;padding-top:.9rem;border-top:1px solid var(--line)}
+.cmd-card.open .cmd-body{display:block}
+.cmd-line{padding:.3rem 0;font-size:.9rem}
+.cmd-line-d{font-size:.8rem;color:var(--muted);margin-left:1rem}
+.cmd-note{background:rgba(255,255,255,.04);border-radius:8px;padding:.45rem .75rem;font-size:.82rem;color:var(--muted);margin-top:.5rem}
+
+/* ÉDITEUR MENU */
+.ed-section{margin-bottom:2rem}
+.ed-section h3{font-size:1.1rem;font-weight:900;color:var(--gold);margin-bottom:.7rem;letter-spacing:-.02em;padding-bottom:.4rem;border-bottom:1px solid var(--line)}
+.ed-item{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:14px;padding:.85rem 1rem;margin-bottom:.5rem}
+.ed-row1{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;margin-bottom:.6rem}
+.ed-nom-input{flex:2;min-width:140px}
+.ed-prix-group{display:flex;gap:.5rem;flex:3;flex-wrap:wrap}
+.ed-prix-field{flex:1;min-width:80px}
+.ed-prix-field label{font-size:.72rem;color:var(--muted);display:block;margin-bottom:.2rem}
+.ed-input{background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:8px;padding:.4rem .6rem;color:#f7efe1;width:100%;font-family:inherit;font-size:.88rem}
+.ed-input:focus{outline:2px solid var(--gold);border-color:transparent}
+.ed-row2{display:flex;align-items:flex-start;gap:.8rem;flex-wrap:wrap}
+.ed-img-group{flex:2;min-width:180px}
+.ed-desc-group{flex:3;min-width:180px}
+.ed-img-preview{width:60px;height:45px;object-fit:cover;border-radius:8px;border:1px solid var(--line);vertical-align:middle}
+.ed-img-row{display:flex;align-items:center;gap:.5rem}
+.toggle-actif{display:flex;align-items:center;gap:.5rem;font-size:.85rem;cursor:pointer;padding:.3rem .6rem;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,.04)}
+.toggle-actif.off{opacity:.5;border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.07)}
+.toggle-actif input{accent-color:var(--gold);width:15px;height:15px}
+
+/* Tags */
+.tags-wrap{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.7rem}
+.tag{display:flex;align-items:center;gap:.35rem;background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:8px;padding:.3rem .6rem;font-size:.85rem}
+.tag button{background:none;border:none;color:#fca5a5;cursor:pointer;font-size:.85rem;line-height:1;padding:0}
+.add-row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.add-row input{background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:8px;padding:.45rem .75rem;color:#f7efe1;font-size:.88rem;flex:1;min-width:120px}
+.btn-add{padding:.45rem .9rem;border-radius:8px;border:none;background:rgba(238,195,123,.15);color:var(--gold);font-weight:800;cursor:pointer;font-family:inherit;font-size:.85rem}
+
+/* Horaires */
+.horaire-row{display:grid;grid-template-columns:110px 1fr 1fr auto;gap:.5rem;align-items:center;margin-bottom:.4rem}
+.horaire-row label{font-size:.88rem;font-weight:700}
+.horaire-ferme{display:flex;align-items:center;gap:.4rem;font-size:.83rem;cursor:pointer}
+.horaire-ferme input{accent-color:var(--gold)}
+
+/* Save */
+.save-bar{position:sticky;bottom:1rem;background:linear-gradient(180deg,var(--acc),var(--acc2));border-radius:16px;padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;margin-top:1.5rem;box-shadow:0 8px 28px rgba(178,58,22,.5);z-index:10}
+.save-bar span{font-weight:700}
+.btn-save{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;font-weight:900;padding:.7rem 1.4rem;border-radius:12px;cursor:pointer;font-family:inherit;font-size:.95rem}
+.banner{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:#4ade80;padding:.7rem 1rem;border-radius:12px;margin-bottom:1rem;display:none;font-weight:700}
+.banner.on{display:block}
+
+@media(max-width:760px){
+  .stats{grid-template-columns:1fr 1fr}
+  .ed-row1,.ed-row2,.horaire-row{grid-template-columns:1fr}
+  .horaire-row{display:flex;flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="login-screen">
+  <div class="login-box">
+    <div style="font-size:3rem;margin-bottom:.5rem">🔐</div>
+    <h2>Admin<br><span style="color:var(--gold)">L'Authentik</span></h2>
+    <input type="password" id="pwd" placeholder="Mot de passe" autofocus>
+    <div class="login-err" id="login-err"></div>
+    <button class="btn-main" onclick="login()">Accéder</button>
+  </div>
+</div>
+
+<div class="admin-wrap" id="aw">
+  <div class="top-bar">
+    <div>
+      <a href="index.html" class="back-link">← Retour au site</a>
+      <h1>🍽 Administration</h1>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on"  onclick="tab('jour')">📋 Commandes du jour</button>
+    <button class="tab"     onclick="tab('global')">🗂 Historique global</button>
+    <button class="tab"     onclick="tab('menu')">✏️ Menu & Prix</button>
+    <button class="tab"     onclick="tab('opts')">⚙️ Sauces & Boissons</button>
+    <button class="tab"     onclick="tab('horaires-tab')">🕐 Horaires</button>
+    <button class="tab btn-danger" onclick="resetAll()">🔄 Reset total</button>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats" id="stats"></div>
+
+  <!-- PANE: COMMANDES DU JOUR -->
+  <div class="pane on" id="pane-jour">
+    <div class="filters">
+      <input type="text" id="s-jour" placeholder="Rechercher…" oninput="renderCmds('jour')">
+      <button class="btn-sm" onclick="exportCSV('jour')">⬇ Export CSV</button>
+      <button class="btn-sm btn-danger" onclick="clearToday()">🗑 Effacer aujourd'hui</button>
+    </div>
+    <div id="list-jour"></div>
+  </div>
+
+  <!-- PANE: HISTORIQUE GLOBAL -->
+  <div class="pane" id="pane-global">
+    <div class="filters">
+      <input type="text" id="s-global" placeholder="Rechercher…" oninput="renderCmds('global')">
+      <input type="date"  id="f-date"  onchange="renderCmds('global')">
+      <button class="btn-sm" onclick="exportCSV('global')">⬇ Export CSV</button>
+      <button class="btn-sm btn-danger" onclick="clearAll()">🗑 Effacer tout</button>
+    </div>
+    <div id="list-global"></div>
+  </div>
+
+  <!-- PANE: ÉDITEUR MENU -->
+  <div class="pane" id="pane-menu">
+    <div class="banner" id="ban-menu">✅ Menu sauvegardé !</div>
+    <div id="menu-ed-body"></div>
+    <div class="save-bar">
+      <span>Modifications non sauvegardées</span>
+      <button class="btn-save" onclick="saveMenu()">💾 Sauvegarder</button>
+    </div>
+  </div>
+
+  <!-- PANE: SAUCES & BOISSONS -->
+  <div class="pane" id="pane-opts">
+    <div class="banner" id="ban-opts">✅ Options sauvegardées !</div>
+    <div class="ed-section">
+      <h3>Sauces disponibles</h3>
+      <div class="tags-wrap" id="tags-sauces"></div>
+      <div class="add-row">
+        <input type="text" id="new-sauce" placeholder="Nouvelle sauce…">
+        <button class="btn-add" onclick="addTag('sauce')">+ Ajouter</button>
+      </div>
+    </div>
+    <div class="ed-section">
+      <h3>Boissons</h3>
+      <div class="tags-wrap" id="tags-boissons"></div>
+      <div class="add-row">
+        <input type="text" id="new-bois-nom" placeholder="Nom boisson…" style="flex:2">
+        <input type="number" id="new-bois-prix" placeholder="Prix €" step="0.5" min="0" style="flex:1;max-width:90px">
+        <button class="btn-add" onclick="addTag('boisson')">+ Ajouter</button>
+      </div>
+    </div>
+    <div class="ed-section">
+      <h3>Crudités proposées</h3>
+      <div class="tags-wrap" id="tags-crudites"></div>
+      <div class="add-row">
+        <input type="text" id="new-crudite" placeholder="Nouvelle crudité…">
+        <button class="btn-add" onclick="addTag('crudite')">+ Ajouter</button>
+      </div>
+    </div>
+    <div class="save-bar">
+      <span>Options</span>
+      <button class="btn-save" onclick="saveOpts()">💾 Sauvegarder</button>
+    </div>
+  </div>
+
+  <!-- PANE: HORAIRES -->
+  <div class="pane" id="pane-horaires-tab">
+    <div class="banner" id="ban-hor">✅ Horaires sauvegardés !</div>
+    <div class="ed-section">
+      <h3>Horaires d'ouverture</h3>
+      <div id="hor-editor"></div>
+    </div>
+    <div class="save-bar">
+      <span>Horaires</span>
+      <button class="btn-save" onclick="saveHoraires()">💾 Sauvegarder</button>
+    </div>
+  </div>
+
+</div><!-- /admin-wrap -->
+
+<script src="assets/js/menu-data.js"></script>
+<script>
+const PWD = 'Lauthentik@2025';
+let editData = null;
+let optsData = null;
+
+/* ---- AUTH ---- */
+function login() {
+  if (document.getElementById('pwd').value === PWD) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('aw').style.display = 'block';
+    init();
+  } else {
+    document.getElementById('login-err').textContent = 'Mot de passe incorrect.';
+  }
+}
+document.getElementById('pwd').addEventListener('keydown', e => { if(e.key==='Enter') login(); });
+
+/* ---- TABS ---- */
+function tab(id) {
+  document.querySelectorAll('.tab').forEach((t,i)=>{ t.classList.toggle('on', t.onclick?.toString().includes(`'${id}'`)); });
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('on'));
+  document.getElementById('pane-'+id).classList.add('on');
+  // Fix tab active state
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.toggle('on', t.getAttribute('onclick') === `tab('${id}')`);
+  });
+}
+
+/* ---- INIT ---- */
+function init() {
+  renderStats();
+  renderCmds('jour');
+  renderCmds('global');
+  renderMenuEd();
+  renderOptsEd();
+  renderHorEd();
+}
+
+/* ---- STATS ---- */
+function getHist() {
+  try { return JSON.parse(localStorage.getItem('lauthentik_historique')||'[]'); } catch(e){ return []; }
+}
+function today() { return new Date().toISOString().slice(0,10); }
+
+function renderStats() {
+  const hist = getHist();
+  const td = hist.filter(c => c.timestamp?.slice(0,10) === today());
+  const caToday = td.reduce((s,c)=>s+(c.total||0),0);
+  const caTotal = hist.reduce((s,c)=>s+(c.total||0),0);
+  document.getElementById('stats').innerHTML = [
+    [td.length, "Commandes aujourd'hui"],
+    [caToday.toFixed(2)+' €', "CA aujourd'hui"],
+    [hist.length, "Commandes totales"],
+    [caTotal.toFixed(2)+' €', "CA total"]
+  ].map(([v,l])=>`<div class="stat"><div class="stat-v">${v}</div><div class="stat-l">${l}</div></div>`).join('');
+}
+
+/* ---- COMMANDES ---- */
+const STATUS_LABELS = {
+  wait:  { label:'⏳ En traitement', cls:'badge-wait' },
+  '10min': { label:'🕐 Dans 10 min',  cls:'badge-10min' },
+  '5min':  { label:'🕔 Dans 5 min',   cls:'badge-5min' },
+  ready:   { label:'✅ Prêt !',       cls:'badge-ready' }
+};
+
+function setStatus(idx, status) {
+  const hist = getHist();
+  if (hist[idx]) { hist[idx].status = status; localStorage.setItem('lauthentik_historique', JSON.stringify(hist)); }
+  renderCmds(document.querySelector('.pane.on').id.replace('pane-',''));
+  renderStats();
+}
+
+function renderCmds(mode) {
+  const hist = getHist();
+  const search = document.getElementById('s-'+mode)?.value.toLowerCase()||'';
+  const fdate  = document.getElementById('f-date')?.value||'';
+  let list = mode==='jour' ? hist.filter(c=>c.timestamp?.slice(0,10)===today()) : [...hist];
+  if (fdate) list = list.filter(c=>c.timestamp?.slice(0,10)===fdate);
+  if (search) list = list.filter(c=>
+    JSON.stringify(c).toLowerCase().includes(search)
+  );
+  // Keep original indices for status updates
+  const container = document.getElementById('list-'+mode);
+  if (!list.length) {
+    container.innerHTML = `<div style="text-align:center;color:var(--muted);padding:2rem">Aucune commande${mode==='jour'?" aujourd'hui":''}</div>`;
+    return;
+  }
+  container.innerHTML = list.map(c => {
+    // Find real index in full hist array
+    const realIdx = hist.findIndex(h => h.timestamp === c.timestamp && h.client_nom === c.client_nom && h.numero === c.numero);
+    const st = c.status || 'wait';
+    const stInfo = STATUS_LABELS[st] || STATUS_LABELS.wait;
+    return `<div class="cmd-card" id="cmd-${realIdx}">
+      <div class="cmd-head" onclick="toggleCmd(${realIdx})">
+        <span class="cmd-num">#${c.numero||'?'}</span>
+        <span class="cmd-client">${c.client_nom||'—'}</span>
+        <span class="cmd-time">${c.heure||''} · ${c.date||''}</span>
+        <span class="badge ${stInfo.cls}">${stInfo.label}</span>
+        <span class="cmd-total">${(c.total||0).toFixed(2)} €</span>
+        <span style="color:var(--muted);font-size:.8rem">▼</span>
+      </div>
+      <div class="cmd-body">
+        ${(c.items||[]).map(i=>`
+          <div class="cmd-line">${i.qte||1}× <strong>${i.nom}</strong> — <span style="color:var(--gold)">${((i.prix||0)*(i.qte||1)).toFixed(2)} €</span>
+            ${i.detail?`<div class="cmd-line-d">${i.detail}</div>`:''}
+          </div>`).join('')}
+        ${c.client_tel?`<div class="cmd-line-d" style="margin-top:.4rem">📞 ${c.client_tel}</div>`:''}
+        ${c.note?`<div class="cmd-note">📝 ${c.note}</div>`:''}
+        <div style="margin-top:.8rem;display:flex;gap:.3rem;flex-wrap:wrap">
+          <span style="font-size:.8rem;color:var(--muted);margin-right:.3rem">Statut :</span>
+          ${Object.entries(STATUS_LABELS).map(([k,v])=>`
+            <button class="status-btn ${st===k?'active':''}" 
+              style="${st===k?'background:rgba(238,195,123,.15);color:var(--gold);border-color:rgba(238,195,123,.3)':''}"
+              onclick="setStatus(${realIdx},'${k}');event.stopPropagation()">
+              ${v.label}
+            </button>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCmd(idx) {
+  document.getElementById('cmd-'+idx)?.classList.toggle('open');
+}
+
+/* ---- EXPORT CSV ---- */
+function exportCSV(mode) {
+  const hist = getHist();
+  const td = today();
+  const data = mode==='jour' ? hist.filter(c=>c.timestamp?.slice(0,10)===td) : hist;
+  const rows = [['Numéro','Date','Heure','Client','Téléphone','Commande','Total','Statut','Note']];
+  data.forEach(c => {
+    const items = (c.items||[]).map(i=>`${i.qte||1}x ${i.nom}${i.detail?' ('+i.detail+')':''}`).join('; ');
+    rows.push([c.numero||'',c.date||'',c.heure||'',c.client_nom||'',c.client_tel||'',items,(c.total||0).toFixed(2),c.status||'wait',c.note||'']);
+  });
+  const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));
+  a.download = `commandes_${td}.csv`;
+  a.click();
+}
+
+function clearToday() {
+  if(!confirm("Effacer les commandes d'aujourd'hui ?")) return;
+  const td = today();
+  const hist = getHist().filter(c=>c.timestamp?.slice(0,10)!==td);
+  localStorage.setItem('lauthentik_historique', JSON.stringify(hist));
+  renderCmds('jour'); renderStats();
+}
+function clearAll() {
+  if(!confirm("Effacer TOUT l'historique ? Action irréversible.")) return;
+  localStorage.removeItem('lauthentik_historique');
+  renderCmds('jour'); renderCmds('global'); renderStats();
+}
+
+/* ---- ÉDITEUR MENU ---- */
+function renderMenuEd() {
+  editData = JSON.parse(JSON.stringify(getMenuData()));
+  const body = document.getElementById('menu-ed-body');
+  let html = '';
+  for (const [catKey, cat] of Object.entries(editData.categories)) {
+    html += `<div class="ed-section"><h3>${cat.label}</h3>`;
+    cat.items.forEach((item, idx) => {
+      const p  = item.prix!=null ? item.prix : '';
+      const pf = item.avecFrites!=null ? item.avecFrites : '';
+      const pm = item.menu!=null ? item.menu : '';
+      html += `
+      <div class="ed-item" id="ei-${catKey}-${idx}">
+        <div class="ed-row1">
+          <div class="ed-nom-input">
+            <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:.2rem">Nom</label>
+            <input class="ed-input ed-nom" value="${item.nom}" data-cat="${catKey}" data-idx="${idx}">
+          </div>
+          <div class="ed-prix-group">
+            <div class="ed-prix-field"><label>Prix seul (€)</label><input class="ed-input ed-p" type="number" step="0.5" min="0" value="${p}" placeholder="—" data-cat="${catKey}" data-idx="${idx}" data-f="prix"></div>
+            ${item.avecFrites!==undefined||item.avecFrites===null?`<div class="ed-prix-field"><label>Avec frites (€)</label><input class="ed-input ed-p" type="number" step="0.5" min="0" value="${pf}" placeholder="—" data-cat="${catKey}" data-idx="${idx}" data-f="avecFrites"></div>`:''}
+            ${item.menu!==undefined?`<div class="ed-prix-field"><label>Menu complet (€)</label><input class="ed-input ed-p" type="number" step="0.5" min="0" value="${pm}" placeholder="—" data-cat="${catKey}" data-idx="${idx}" data-f="menu"></div>`:''}
+          </div>
+          <label class="toggle-actif ${item.actif===false?'off':''}" id="tog-${catKey}-${idx}" onclick="toggleActif('${catKey}',${idx},this)">
+            <input type="checkbox" ${item.actif!==false?'checked':''} style="pointer-events:none">
+            ${item.actif===false?'❌ Indispo':'✅ Disponible'}
+          </label>
+        </div>
+        <div class="ed-row2">
+          <div class="ed-img-group">
+            <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:.3rem">Photo (URL)</label>
+            <div class="ed-img-row">
+              <img class="ed-img-preview" id="prev-${catKey}-${idx}" src="${item.img}" onerror="this.src='assets/img/logo.png'">
+              <input class="ed-input" value="${item.img}" data-cat="${catKey}" data-idx="${idx}" data-f="img"
+                oninput="document.getElementById('prev-${catKey}-${idx}').src=this.value||'assets/img/logo.png'" style="flex:1">
+            </div>
+          </div>
+          <div class="ed-desc-group">
+            <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:.3rem">Description</label>
+            <input class="ed-input ed-desc" value="${item.desc}" data-cat="${catKey}" data-idx="${idx}">
+          </div>
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+  body.innerHTML = html;
+
+  // Bind all inputs
+  body.querySelectorAll('.ed-nom').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const {cat,idx} = inp.dataset;
+      editData.categories[cat].items[parseInt(idx)].nom = inp.value;
+    });
+  });
+  body.querySelectorAll('.ed-desc').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const {cat,idx} = inp.dataset;
+      editData.categories[cat].items[parseInt(idx)].desc = inp.value;
+    });
+  });
+  body.querySelectorAll('[data-f]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const {cat,idx,f} = inp.dataset;
+      if (!inp.classList.contains('ed-nom') && !inp.classList.contains('ed-desc')) {
+        if (f === 'img') {
+          editData.categories[cat].items[parseInt(idx)].img = inp.value;
+        } else {
+          const v = parseFloat(inp.value);
+          editData.categories[cat].items[parseInt(idx)][f] = isNaN(v) ? null : v;
+        }
+      }
+    });
+  });
+}
+
+function toggleActif(cat, idx, el) {
+  const val = editData.categories[cat].items[idx].actif !== false;
+  editData.categories[cat].items[idx].actif = !val;
+  el.classList.toggle('off', val);
+  const cb = el.querySelector('input');
+  if (cb) cb.checked = !val;
+  el.innerHTML = `<input type="checkbox" ${!val?'checked':''} style="pointer-events:none"> ${!val?'✅ Disponible':'❌ Indispo'}`;
+}
+
+function saveMenu() {
+  saveMenuData(editData);
+  showBanner('ban-menu');
+}
+
+/* ---- OPTS EDITOR ---- */
+function renderOptsEd() {
+  optsData = JSON.parse(JSON.stringify(getMenuData()));
+  renderTags('sauces', optsData.sauces.map(s=>({nom:s})), 'sauce');
+  renderTags('boissons', optsData.boissons, 'boisson');
+  renderTags('crudites', optsData.crudites.map(c=>({nom:c})), 'crudite');
+}
+
+function renderTags(type, items, key) {
+  const wrap = document.getElementById('tags-'+type);
+  if (!wrap) return;
+  wrap.innerHTML = items.map((item,i) => {
+    const label = type==='boissons' ? `${item.nom} — ${item.prix||1.5}€` : item.nom;
+    return `<div class="tag">${label}<button onclick="removeTag('${key}',${i})">✕</button></div>`;
+  }).join('');
+}
+
+function removeTag(key, idx) {
+  if (key==='sauce')   { optsData.sauces.splice(idx,1); renderTags('sauces', optsData.sauces.map(s=>({nom:s})),'sauce'); }
+  if (key==='boisson') { optsData.boissons.splice(idx,1); renderTags('boissons',optsData.boissons,'boisson'); }
+  if (key==='crudite') { optsData.crudites.splice(idx,1); renderTags('crudites',optsData.crudites.map(c=>({nom:c})),'crudite'); }
+}
+
+function addTag(key) {
+  if (key==='sauce') {
+    const v = document.getElementById('new-sauce').value.trim();
+    if (!v) return;
+    optsData.sauces.push(v);
+    document.getElementById('new-sauce').value = '';
+    renderTags('sauces', optsData.sauces.map(s=>({nom:s})),'sauce');
+  }
+  if (key==='boisson') {
+    const nom  = document.getElementById('new-bois-nom').value.trim();
+    const prix = parseFloat(document.getElementById('new-bois-prix').value)||1.5;
+    if (!nom) return;
+    optsData.boissons.push({nom,prix});
+    document.getElementById('new-bois-nom').value='';
+    document.getElementById('new-bois-prix').value='';
+    renderTags('boissons',optsData.boissons,'boisson');
+  }
+  if (key==='crudite') {
+    const v = document.getElementById('new-crudite').value.trim();
+    if (!v) return;
+    optsData.crudites.push(v);
+    document.getElementById('new-crudite').value='';
+    renderTags('crudites',optsData.crudites.map(c=>({nom:c})),'crudite');
+  }
+}
+
+function saveOpts() {
+  const cur = JSON.parse(JSON.stringify(getMenuData()));
+  cur.sauces   = optsData.sauces;
+  cur.boissons = optsData.boissons;
+  cur.crudites = optsData.crudites;
+  saveMenuData(cur);
+  showBanner('ban-opts');
+}
+
+/* ---- HORAIRES ---- */
+function renderHorEd() {
+  const data = getMenuData();
+  const hor  = data.horaires || MENU_DATA.horaires;
+  const div  = document.getElementById('hor-editor');
+  div.innerHTML = hor.map((h,i) => `
+    <div class="horaire-row" id="hr-${i}">
+      <label>${h.jour}</label>
+      <div><label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:.2rem">Matin / midi</label>
+        <input class="ed-input" id="hm-${i}" value="${h.matin||''}" placeholder="11h00–14h30" ${h.ferme?'disabled':''}></div>
+      <div><label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:.2rem">Soir</label>
+        <input class="ed-input" id="hs-${i}" value="${h.soir||''}"  placeholder="18h00–22h30" ${h.ferme?'disabled':''}></div>
+      <label class="horaire-ferme">
+        <input type="checkbox" id="hf-${i}" ${h.ferme?'checked':''} onchange="toggleFerme(${i})"> Fermé
+      </label>
+    </div>`).join('');
+}
+
+function toggleFerme(i) {
+  const ferme = document.getElementById('hf-'+i).checked;
+  document.getElementById('hm-'+i).disabled = ferme;
+  document.getElementById('hs-'+i).disabled = ferme;
+}
+
+function saveHoraires() {
+  const data = JSON.parse(JSON.stringify(getMenuData()));
+  const hor = data.horaires || MENU_DATA.horaires;
+  hor.forEach((h,i) => {
+    h.ferme = document.getElementById('hf-'+i)?.checked || false;
+    h.matin = document.getElementById('hm-'+i)?.value.trim() || '';
+    h.soir  = document.getElementById('hs-'+i)?.value.trim() || '';
+  });
+  data.horaires = hor;
+  saveMenuData(data);
+  showBanner('ban-hor');
+}
+
+/* ---- RESET ---- */
+function resetAll() {
+  if (!confirm('Réinitialiser TOUTES les données menu aux valeurs par défaut ?')) return;
+  localStorage.removeItem('lauthentik_menu_data');
+  renderMenuEd(); renderOptsEd(); renderHorEd();
+  alert('Réinitialisé !');
+}
+
+/* ---- UTILS ---- */
+function showBanner(id) {
+  const b = document.getElementById(id);
+  if (!b) return;
+  b.classList.add('on');
+  setTimeout(() => b.classList.remove('on'), 3000);
+}
+</script>
+</body>
+</html>
